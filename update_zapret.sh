@@ -9,31 +9,35 @@ ZAPRET_CONFIG="$ZAPRET_BASE/config"
 GITHUB_REPO="remittor/zapret-openwrt"
 
 # Функция для определения архитектуры
+# Функция для определения архитектуры
 get_architecture() {
     local arch=$(opkg print-architecture | awk '{print $2}' | head -n 1)
     if [ "$arch" = "all" ] || [ -z "$arch" ]; then
         arch=$(uname -m)
     fi
-    # Если архитектура начинается с 'mips', ищем более специфичную версию
-    case "$arch" in
-        mips*)
-            # Пользователь указал mipsel_24kc, поэтому используем его как приоритет
-            echo "mipsel_24kc"
-            return
-            ;;
-        *)
-            # Для других архитектур оставляем как есть
-            echo "$arch"
-            return
-            ;;
-    esac
+    # Явно устанавливаем mipsel_24kc, так как пользователь указал эту архитектуру
+    # и она часто используется для mipsel роутеров OpenWrt.
+    if echo "$arch" | grep -q "mips"; then
+        echo "mipsel_24kc"
+    else
+        echo "$arch"
+    fi
 }
 
 # Получить текущую установленную версию zapret
 get_current_version() {
     local current_version=""
-    # Попытка получить версию через opkg info
+    # Попытка получить версию из opkg info
     current_version=$(opkg info zapret 2>/dev/null | grep "Version:" | awk '{print $2}')
+    
+    # Если opkg info не дал результата, попробуем найти версию в файлах zapret
+    if [ -z "$current_version" ]; then
+        # Поиск PKG_VERSION в Makefile или других скриптах в /opt/zapret/
+        current_version=$(grep -h "PKG_VERSION:=" "$ZAPRET_BASE"/* 2>/dev/null | head -n 1 | cut -d'=' -f2 | tr -d '[:space:]')
+        if [ -z "$current_version" ]; then
+            current_version=$(grep -h "PKG_VERSION=" "$ZAPRET_BASE"/* 2>/dev/null | head -n 1 | cut -d'=' -f2 | tr -d '[:space:]"')
+        fi
+    fi
     echo "$current_version"
 }
 
@@ -49,8 +53,8 @@ main() {
     echo "Получение информации о последнем релизе с GitHub..."
     local latest_release_info=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases/latest")
     
-    # Извлечение tag_name без -P
-    local latest_version=$(echo "$latest_release_info" | grep '"tag_name":' | head -n 1 | sed -e 's/.*"tag_name": "\(.*\)",/\1/')
+    # Извлечение tag_name с помощью grep и cut/awk
+    local latest_version=$(echo "$latest_release_info" | grep '"tag_name":' | head -n 1 | cut -d'"' -f4)
     echo "Последняя доступная версия на GitHub: $latest_version"
 
     if [ -z "$latest_version" ]; then
@@ -68,13 +72,13 @@ main() {
     echo "Доступна новая версия: $latest_version. Начинаю обновление..."
 
     # Поиск URL для загрузки пакета для текущей архитектуры
-    # Используем grep -o и sed для извлечения URL
-    local download_url=$(echo "$latest_release_info" | grep -o "\"browser_download_url\": \"[^\"]*zapret_${latest_version}_${current_arch}\.zip\"" | head -n 1 | sed -e 's/.*"browser_download_url": "\(.*\)"/\1/')
+    # Используем grep и cut для извлечения URL
+    local download_url=$(echo "$latest_release_info" | grep "\"browser_download_url\": \"[^\"]*zapret_${latest_version}_${current_arch}\.zip\"" | head -n 1 | cut -d'"' -f4)
 
     if [ -z "$download_url" ]; then
         echo "Не удалось найти пакет .zip для архитектуры '$current_arch' в последнем релизе."
         echo "Попытка найти пакет .ipk"
-        download_url=$(echo "$latest_release_info" | grep -o "\"browser_download_url\": \"[^\"]*zapret_${latest_version}_${current_arch}\.ipk\"" | head -n 1 | sed -e 's/.*"browser_download_url": "\(.*\)"/\1/')
+        download_url=$(echo "$latest_release_info" | grep "\"browser_download_url\": \"[^\"]*zapret_${latest_version}_${current_arch}\.ipk\"" | head -n 1 | cut -d'"' -f4)
     fi
 
     if [ -z "$download_url" ]; then
