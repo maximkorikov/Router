@@ -331,6 +331,7 @@ printf "\033[32;1mRestarting network services...\033[0m\n"
 
 printf  "\033[32;1mRestarting LuCI web server...\033[0m\n"
 service uhttpd restart
+service podkop restart
 /etc/init.d/dnsmasq restart
 /etc/init.d/odhcpd restart
 
