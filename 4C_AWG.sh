@@ -228,6 +228,16 @@ uci set network.@${CONFIG_NAME}[-1].allowed_ips='0.0.0.0/0'
 uci set network.@${CONFIG_NAME}[-1].route_allowed_ips='0'
 uci commit network
 
+# Загрузка модуля ядра AmneziaWG (если не загружен)
+modprobe amneziawg
+
+# Перезапуск службы netifd для применения изменений
+service netifd restart
+
+# Проверка статуса интерфейса awg10
+printf "\033[32;1mChecking status of awg10 interface...\033[0m\n"
+ip link show awg10 || echo "Interface awg10 not found or not active."
+
 if ! uci show firewall | grep -q "@zone.*name='${ZONE_NAME}'"; then
 	printf "\033[32;1mZone Create\033[0m\n"
 	uci add firewall zone
@@ -300,15 +310,14 @@ printf  "\033[32;1mRestart service dnsmasq, odhcpd...\033[0m\n"
 service dnsmasq restart
 service odhcpd restart
 
-printf  "\033[32;1mRestart firewall and network...\033[0m\n"
+printf  "\033[32;1mRestart firewall...\033[0m\n"
 service firewall restart
-#service network restart
 
-# Отключаем интерфейс
-ifdown $INTERFACE_NAME
-# Ждем несколько секунд (по желанию)
-sleep 2
-# Включаем интерфейс
-ifup $INTERFACE_NAME
+# Перезапуск всей сети
+printf "\033[32;1mRestarting network services...\033[0m\n"
+/etc/init.d/network restart
+
+printf  "\033[32;1mRestarting LuCI web server...\033[0m\n"
+service uhttpd restart
 
 printf  "\033[32;1mConfigured completed...\033[0m\n"
