@@ -331,9 +331,11 @@ printf "\033[32;1mRestarting network services...\033[0m\n"
 
 printf  "\033[32;1mRestarting LuCI web server...\033[0m\n"
 service uhttpd restart
-service podkop restart
 /etc/init.d/dnsmasq restart
 /etc/init.d/odhcpd restart
+service dnsmasq restart
+service odhcpd restart
+service podkop restart
 
 # Настройка cron-задачи для обновления ключа AmneziaWG
 printf "\033[32;1mSetting up cron job to update AmneziaWG key daily at 04:00...\033[0m\n"
