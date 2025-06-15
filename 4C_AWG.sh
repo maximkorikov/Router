@@ -125,6 +125,11 @@ check_request() {
 main() {
     check_system
 
+    # Установка curl и jq, необходимых для генерации WARP конфига
+    opkg update
+    opkg install curl
+    opkg install jq
+
     wget -qO- "$REPO" | grep -o 'https://[^"]*\.ipk' | while read -r url; do
         filename=$(basename "$url")
         echo "Download $filename..."
