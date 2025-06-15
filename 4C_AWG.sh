@@ -472,6 +472,7 @@ wg_awg_setup() {
     WG_PRESHARED_KEY_INT="" # PresharedKey не используется в WARP конфиге
     WG_ENDPOINT_INT=$EndpointIP
     WG_ENDPOINT_PORT_INT=$EndpointPort
+    MTU=1280 # Устанавливаем MTU по умолчанию
 
     if [ "$PROTOCOL_NAME" = 'AmneziaWG' ]; then
         if [ "$CONFIG_TYPE" = '1' ]; then
@@ -506,6 +507,7 @@ wg_awg_setup() {
     uci add_list network.${INTERFACE_NAME}.addresses=$WG_IP
     uci set network.${INTERFACE_NAME}.mtu=$MTU
     uci set network.${INTERFACE_NAME}.nohostroute='1'
+    uci commit network # Коммитим изменения после настройки интерфейса
 
     if [ "$PROTOCOL_NAME" = 'AmneziaWG' ]; then
         uci set network.${INTERFACE_NAME}.awg_jc=$AWG_JC
@@ -532,7 +534,7 @@ wg_awg_setup() {
     uci set network.@${CONFIG_NAME}[-1].endpoint_host=$WG_ENDPOINT_INT
     uci set network.@${CONFIG_NAME}[-1].allowed_ips='0.0.0.0/0'
     uci set network.@${CONFIG_NAME}[-1].endpoint_port=$WG_ENDPOINT_PORT_INT
-    uci commit network
+    uci commit network # Коммитим изменения после настройки peer-секции
 
     if ! uci show firewall | grep -q "@zone.*name='${ZONE_NAME}'"; then
         printf "\033[32;1mZone Create\033[0m\n"
