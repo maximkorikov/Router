@@ -1,9 +1,5 @@
 #!/bin/sh
 
-# Загрузка и запуск скрипта для удаления предыдущей установки (если есть)
-printf "\033[32;1mDownloading and running uninstallation script (if it exists)...\033[0m\n"
-wget -q -O /tmp/uninstall_podkop_awg.sh https://raw.githubusercontent.com/maximkorikov/Router/refs/heads/main/uninstall_podkop_awg.sh && chmod +x /tmp/uninstall_podkop_awg.sh && sh /tmp/uninstall_podkop_awg.sh || echo "Uninstallation script not found or failed."
-
 # 1. Установка Podkop v0.2.5
 printf "\033[32;1mInstalling Podkop v0.2.5...\033[0m\n"
 (echo "3"; echo "n"; echo "y") | sh <(wget -O - https://raw.githubusercontent.com/itdoginfo/podkop/a6a171ef47d0ea91d046a9d613570b2a7c952b0d/install.sh | sed 's|https://api.github.com/repos/itdoginfo/podkop/releases/latest|https://api.github.com/repos/itdoginfo/podkop/releases/tags/v0.2.5|g')
@@ -334,11 +330,5 @@ printf "\033[32;1mRestarting network services...\033[0m\n"
 
 printf  "\033[32;1mRestarting LuCI web server...\033[0m\n"
 service uhttpd restart
-
-# Настройка cron-задачи для обновления ключа AmneziaWG
-printf "\033[32;1mSetting up cron job to update AmneziaWG key daily at 04:00...\033[0m\n"
-wget -O /root/update_awg_key.sh https://raw.githubusercontent.com/maximkorikov/Router/refs/heads/main/update_awg_key.sh
-chmod +x /root/update_awg_key.sh
-( crontab -l | grep -v "update_awg_key.sh" ; echo "0 4 * * * /root/update_awg_key.sh" ) | crontab -
 
 printf  "\033[32;1mConfigured completed...\033[0m\n"
