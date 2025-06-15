@@ -231,7 +231,7 @@ uci set network.@${CONFIG_NAME}[-1].route_allowed_ips='0'
 uci commit network
 
 # 6. Перезагрузка сети
-/etc/init.d/network restart
+
 service uhttpd restart
 /etc/init.d/dnsmasq restart
 /etc/init.d/odhcpd restart
