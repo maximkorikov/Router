@@ -313,6 +313,17 @@ service odhcpd restart
 printf  "\033[32;1mRestart firewall...\033[0m\n"
 service firewall restart
 
+# Установка и настройка Stubby
+printf "\033[32;1mInstalling and configuring Stubby...\033[0m\n"
+opkg update && opkg install stubby
+uci set dhcp.@dnsmasq[0].noresolv="1"
+uci set dhcp.@dnsmasq[0].filter_aaaa="1"
+uci -q delete dhcp.@dnsmasq[0].server
+uci add_list dhcp.@dnsmasq[0].server="127.0.0.1#5453"
+uci commit dhcp
+service dnsmasq restart
+echo -e "ntpd -q -p ptbtime1.ptb.de\nsleep 5\n/etc/init.d/stubby restart\nexit 0" > /etc/rc.local && chmod +x /etc/rc.local && /etc/init.d/stubby restart
+
 # Перезапуск всей сети
 printf "\033[32;1mRestarting network services...\033[0m\n"
 /etc/init.d/network restart
