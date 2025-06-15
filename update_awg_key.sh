@@ -233,11 +233,11 @@ uci commit network
 # 6. Перезагрузка сети
 /etc/init.d/network restart
 service uhttpd restart
-service podkop restart
 /etc/init.d/dnsmasq restart
 /etc/init.d/odhcpd restart
 service dnsmasq restart
 service odhcpd restart
+service podkop restart
 
 echo "Successfully updated AmneziaWG key."
 
