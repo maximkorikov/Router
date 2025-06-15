@@ -502,7 +502,10 @@ wg_awg_setup() {
     uci set network.${INTERFACE_NAME}.proto=$PROTO
     uci set network.${INTERFACE_NAME}.private_key=$WG_PRIVATE_KEY_INT
     uci set network.${INTERFACE_NAME}.listen_port='51821'
-    uci set network.${INTERFACE_NAME}.addresses=$WG_IP
+    uci del network.${INTERFACE_NAME}.addresses
+    uci add_list network.${INTERFACE_NAME}.addresses=$WG_IP
+    uci set network.${INTERFACE_NAME}.mtu=$MTU
+    uci set network.${INTERFACE_NAME}.nohostroute='1'
 
     if [ "$PROTOCOL_NAME" = 'AmneziaWG' ]; then
         uci set network.${INTERFACE_NAME}.awg_jc=$AWG_JC
@@ -520,15 +523,15 @@ wg_awg_setup() {
         uci add network ${CONFIG_NAME}
     fi
 
-    uci set network.@${CONFIG_NAME}[0]=$CONFIG_NAME
-    uci set network.@${CONFIG_NAME}[0].name="${INTERFACE_NAME}_client"
-    uci set network.@${CONFIG_NAME}[0].public_key=$WG_PUBLIC_KEY_INT
-    uci set network.@${CONFIG_NAME}[0].preshared_key=$WG_PRESHARED_KEY_INT
-    uci set network.@${CONFIG_NAME}[0].route_allowed_ips='0'
-    uci set network.@${CONFIG_NAME}[0].persistent_keepalive='25'
-    uci set network.@${CONFIG_NAME}[0].endpoint_host=$WG_ENDPOINT_INT
-    uci set network.@${CONFIG_NAME}[0].allowed_ips='0.0.0.0/0'
-    uci set network.@${CONFIG_NAME}[0].endpoint_port=$WG_ENDPOINT_PORT_INT
+    uci set network.@${CONFIG_NAME}[-1]=$CONFIG_NAME
+    uci set network.@${CONFIG_NAME}[-1].name="${INTERFACE_NAME}_client"
+    uci set network.@${CONFIG_NAME}[-1].public_key=$WG_PUBLIC_KEY_INT
+    uci set network.@${CONFIG_NAME}[-1].preshared_key=$WG_PRESHARED_KEY_INT
+    uci set network.@${CONFIG_NAME}[-1].route_allowed_ips='0'
+    uci set network.@${CONFIG_NAME}[-1].persistent_keepalive='25'
+    uci set network.@${CONFIG_NAME}[-1].endpoint_host=$WG_ENDPOINT_INT
+    uci set network.@${CONFIG_NAME}[-1].allowed_ips='0.0.0.0/0'
+    uci set network.@${CONFIG_NAME}[-1].endpoint_port=$WG_ENDPOINT_PORT_INT
     uci commit network
 
     if ! uci show firewall | grep -q "@zone.*name='${ZONE_NAME}'"; then
@@ -556,7 +559,12 @@ wg_awg_setup() {
         uci commit firewall
     fi
 
-    handler_network_restart
+    # Перезапуск интерфейса и фаервола для применения изменений
+    ifdown $INTERFACE_NAME
+    sleep 2 # Даем время на отключение
+    ifup $INTERFACE_NAME
+    service firewall restart
+    # handler_network_restart # Эта функция больше не нужна здесь, так как перезапуск происходит явно
 }
 
 check_system() {
