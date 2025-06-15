@@ -316,12 +316,115 @@ service firewall restart
 # Установка и настройка Stubby
 printf "\033[32;1mInstalling and configuring Stubby...\033[0m\n"
 opkg update && opkg install stubby
+
+# Установка и настройка https-dns-proxy
+printf "\033[32;1mInstalling and configuring https-dns-proxy...\033[0m\n"
+opkg update
+opkg install https-dns-proxy
+opkg install luci-app-https-dns-proxy
+opkg install luci-i18n-https-dns-proxy-ru
+
 uci set dhcp.@dnsmasq[0].noresolv="1"
 uci set dhcp.@dnsmasq[0].filter_aaaa="1"
 uci -q delete dhcp.@dnsmasq[0].server
 uci add_list dhcp.@dnsmasq[0].server="127.0.0.1#5453"
+
+uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5053'
+uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5054'
+uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5055'
+uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.chatgpt.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.oaistatic.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.oaiusercontent.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.openai.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.microsoft.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.windowsupdate.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.bing.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.supercell.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.seeurlpcl.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.supercellid.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.supercellgames.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.clashroyale.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.brawlstars.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.clash.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.clashofclans.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.x.ai/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.grok.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.github.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.forzamotorsport.net/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.forzaracingchampionship.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.forzarc.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.gamepass.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.orithegame.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.renovacionxboxlive.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.tellmewhygame.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xbox.co/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xbox.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xbox.eu/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xbox.org/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xbox360.co/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xbox360.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xbox360.eu/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xbox360.org/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xboxab.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xboxgamepass.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xboxgamestudios.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xboxlive.cn/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xboxlive.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xboxone.co/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xboxone.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xboxone.eu/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xboxplayanywhere.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xboxservices.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xboxstudios.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.xbx.lv/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.sentry.io/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.usercentrics.eu/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.recaptcha.net/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.gstatic.com/127.0.0.1#5056'
+uci add_list dhcp.@dnsmasq[0].server='/*.brawlstarsgame.com/127.0.0.1#5056'
 uci commit dhcp
+
+service https-dns-proxy restart
 service dnsmasq restart
+service odhcpd restart
+
+# Настройка https-dns-proxy
+printf "\033[32;1mConfiguring https-dns-proxy...\033[0m\n"
+uci set https-dns-proxy.config.canary_domains_icloud='1'
+uci set https-dns-proxy.config.canary_domains_mozilla='1'
+uci set https-dns-proxy.config.dnsmasq_config_update='*'
+uci set https-dns-proxy.config.force_dns='1'
+uci add_list https-dns-proxy.config.force_dns_port='53'
+uci add_list https-dns-proxy.config.force_dns_port='853'
+uci set https-dns-proxy.config.procd_trigger_wan6='0'
+
+uci add https-dns-proxy https-dns-proxy
+uci set https-dns-proxy.@https-dns-proxy[-1].resolver_url='https://dns.adguard-dns.com/dns-query'
+uci set https-dns-proxy.@https-dns-proxy[-1].bootstrap_dns='94.140.14.14,94.140.15.15'
+uci set https-dns-proxy.@https-dns-proxy[-1].listen_addr='127.0.0.1'
+uci set https-dns-proxy.@https-dns-proxy[-1].listen_port='5053'
+
+uci add https-dns-proxy https-dns-proxy
+uci set https-dns-proxy.@https-dns-proxy[-1].resolver_url='https://dns.google/dns-query'
+uci set https-dns-proxy.@https-dns-proxy[-1].bootstrap_dns='8.8.8.8,8.8.4.4'
+uci set https-dns-proxy.@https-dns-proxy[-1].listen_addr='127.0.0.1'
+uci set https-dns-proxy.@https-dns-proxy[-1].listen_port='5054'
+
+uci add https-dns-proxy https-dns-proxy
+uci set https-dns-proxy.@https-dns-proxy[-1].resolver_url='https://cloudflare-dns.com/dns-query'
+uci set https-dns-proxy.@https-dns-proxy[-1].bootstrap_dns='1.1.1.1,1.0.0.1'
+uci set https-dns-proxy.@https-dns-proxy[-1].listen_addr='127.0.0.1'
+uci set https-dns-proxy.@https-dns-proxy[-1].listen_port='5055'
+
+uci add https-dns-proxy https-dns-proxy
+uci set https-dns-proxy.@https-dns-proxy[-1].resolver_url='https://router.comss.one/dns-query'
+uci set https-dns-proxy.@https-dns-proxy[-1].bootstrap_dns='195.133.25.16,212.109.195.93'
+uci set https-dns-proxy.@https-dns-proxy[-1].listen_addr='127.0.0.1'
+uci set https-dns-proxy.@https-dns-proxy[-1].listen_port='5056'
+
+uci commit https-dns-proxy
+
 echo -e "ntpd -q -p ptbtime1.ptb.de\nsleep 5\n/etc/init.d/stubby restart\nexit 0" > /etc/rc.local && chmod +x /etc/rc.local && /etc/init.d/stubby restart
 
 # Перезапуск всей сети
@@ -330,11 +433,5 @@ printf "\033[32;1mRestarting network services...\033[0m\n"
 
 printf  "\033[32;1mRestarting LuCI web server...\033[0m\n"
 service uhttpd restart
-
-# Настройка cron-задачи для обновления ключа AmneziaWG
-printf "\033[32;1mSetting up cron job to update AmneziaWG key daily at 04:00...\033[0m\n"
-wget -O /root/update_awg_key.sh https://raw.githubusercontent.com/maximkorikov/Router/refs/heads/main/update_awg_key.sh
-chmod +x /root/update_awg_key.sh
-( crontab -l | grep -v "update_awg_key.sh" ; echo "0 4 * * * /root/update_awg_key.sh" ) | crontab -
 
 printf  "\033[32;1mConfigured completed...\033[0m\n"
