@@ -2,7 +2,7 @@
 
 # 1. Установка Podkop v0.2.5
 printf "\033[32;1mInstalling Podkop v0.2.5...\033[0m\n"
-echo "3" | sh <(wget -O - https://raw.githubusercontent.com/itdoginfo/podkop/a6a171ef47d0ea91d046a9d613570b2a7c952b0d/install.sh | sed 's|https://api.github.com/repos/itdoginfo/podkop/releases/latest|https://api.github.com/repos/itdoginfo/podkop/releases/tags/v0.2.5|g')
+(echo "3"; echo "y"; echo "y") | sh <(wget -O - https://raw.githubusercontent.com/itdoginfo/podkop/a6a171ef47d0ea91d046a9d613570b2a7c952b0d/install.sh | sed 's|https://api.github.com/repos/itdoginfo/podkop/releases/latest|https://api.github.com/repos/itdoginfo/podkop/releases/tags/v0.2.5|g')
 
 # 2. Функции для запроса конфигурации WARP (скопированы из AWG.txt)
 requestConfWARP1()
