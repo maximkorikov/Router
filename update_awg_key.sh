@@ -2,7 +2,7 @@
 
 # Скрипт для автоматического обновления ключа AmneziaWG
 
-# Функции для запроса конфигурации WARP (скопированы из install_podkop_awg.sh)
+# 1. Функции для запроса конфигурации WARP (скопированы из AWG_Genetal.sh)
 requestConfWARP1()
 {
 	#запрос конфигурации WARP
@@ -81,7 +81,7 @@ requestConfWARP4()
 	echo "$result"
 }
 
-# Функция для обработки выполнения запроса
+# 2. Функция для обработки выполнения запроса (скопирована из AWG_Genetal.sh)
 check_request() {
     local response="$1"
 	local choice="$2"
@@ -128,30 +128,34 @@ check_request() {
 	fi
 }
 
-# Получение WARP-конфига
+# 3. Удаление старого ключа
+INTERFACE_NAME="awg10"
+uci del network.${INTERFACE_NAME}.private_key
+uci commit network
+
+# 4. Получение WARP-конфига (скопировано из AWG_Genetal.sh)
 warp_config="Error"
+printf "\033[32;1mRequest WARP config... Attempt #1\033[0m\n"
 result=$(requestConfWARP1)
 warpGen=$(check_request "$result" 1)
-echo "Attempt 1 result: $warpGen"
 if [ "$warpGen" = "Error" ]
 then
+	printf "\033[32;1mRequest WARP config... Attempt #2\033[0m\n"
 	result=$(requestConfWARP2)
 	warpGen=$(check_request "$result" 2)
-	echo "Attempt 2 result: $warpGen"
 	if [ "$warpGen" = "Error" ]
 	then
+		printf "\033[32;1mRequest WARP config... Attempt #3\033[0m\n"
 		result=$(requestConfWARP3)
 		warpGen=$(check_request "$result" 3)
-		echo "Attempt 3 result: $warpGen"
 		if [ "$warpGen" = "Error" ]
 		then
+			printf "\033[32;1mRequest WARP config... Attempt #4\033[0m\n"
 			result=$(requestConfWARP4)
 			warpGen=$(check_request "$result" 4)
-			echo "Attempt 4 result: $warpGen"
 			if [ "$warpGen" = "Error" ]
 			then
-				echo "Error: Failed to generate WARP config."
-				exit 1
+				warp_config="Error"
 			else
 				warp_config=$warpGen
 			fi
@@ -161,43 +165,73 @@ then
 	else
 		warp_config=$warpGen
 	fi
+
 else
 	warp_config=$warpGen
 fi
 
 if [ "$warp_config" = "Error" ]
 then
-	echo "Error: Failed to generate WARP config."
+	printf "\033[32;1mGenerate config AWG WARP failed...Try again later...\033[0m\n"
 	exit 1
+else
+	while IFS=' = ' read -r line; do
+	if echo "$line" | grep -q "="; then
+		# Разделяем строку по первому вхождению "="
+		key=$(echo "$line" | cut -d'=' -f1 | xargs)  # Убираем пробелы
+		value=$(echo "$line" | cut -d'=' -f2- | xargs)  # Убираем пробелы
+		#echo "key = $key, value = $value"
+		eval "$key=\"$value\""
+	fi
+	done < <(echo "$warp_config")
+
+	#вытаскиваем нужные нам данные из распарсинного ответа
+	Address=$(echo "$Address" | cut -d',' -f1)
+	DNS=$(echo "$DNS" | cut -d',' -f1)
+	AllowedIPs=$(echo "$AllowedIPs" | cut -d',' -f1)
+	EndpointIP=$(echo "$Endpoint" | cut -d':' -f1)
+	EndpointPort=$(echo "$Endpoint" | cut -d':' -f2)
 fi
 
-echo "WARP config: $warp_config"
+# 5. Настройка интерфейса AmneziaWG (скопировано из AWG_Genetal.sh)
+printf "\033[32;1mCreate and configure tunnel AmneziaWG WARP...\033[0m\n"
 
-# Извлечение PrivateKey из WARP-конфига
-PrivateKey=$(echo "$warp_config" | grep "PrivateKey" | cut -d'=' -f2 | tr -d ' ')
-
-echo "PrivateKey: $PrivateKey"
-
-if [ -z "$PrivateKey" ]; then
-  echo "Error: PrivateKey not found in WARP config."
-  exit 1
-fi
-
-# Настройка интерфейса AmneziaWG
+#задаём имя интерфейса
 INTERFACE_NAME="awg10"
-uci set network.${INTERFACE_NAME}.private_key="$PrivateKey"
-uci commit network
-if [ "$?" -ne "0" ]; then
-  echo "Error: Failed to commit network configuration."
-  exit 1
-fi
+CONFIG_NAME="amneziawg_awg10"
+PROTO="amneziawg"
+ZONE_NAME="awg"
 
-# Перезапуск сетевых служб
-/etc/init.d/network restart
-if [ "$?" -ne "0" ]; then
-  echo "Error: Failed to restart network."
-  exit 1
+uci set network.${INTERFACE_NAME}=interface
+uci set network.${INTERFACE_NAME}.proto=$PROTO
+if ! uci show network | grep -q ${CONFIG_NAME}; then
+	uci add network ${CONFIG_NAME}
 fi
+uci set network.${INTERFACE_NAME}.private_key=$PrivateKey
+uci del network.${INTERFACE_NAME}.addresses
+uci add_list network.${INTERFACE_NAME}.addresses=$Address
+uci set network.${INTERFACE_NAME}.mtu=$MTU
+uci set network.${INTERFACE_NAME}.awg_jc=$Jc
+uci set network.${INTERFACE_NAME}.awg_jmin=$Jmin
+uci set network.${INTERFACE_NAME}.awg_jmax=$Jmax
+uci set network.${INTERFACE_NAME}.awg_s1=$S1
+uci set network.${INTERFACE_NAME}.awg_s2=$S2
+uci set network.${INTERFACE_NAME}.awg_h1=$H1
+uci set network.${INTERFACE_NAME}.awg_h2=$H2
+uci set network.${INTERFACE_NAME}.awg_h3=$H3
+uci set network.${INTERFACE_NAME}.awg_h4=$H4
+uci set network.${INTERFACE_NAME}.nohostroute='1'
+uci set network.@${CONFIG_NAME}[-1].description="${INTERFACE_NAME}_peer"
+uci set network.@${CONFIG_NAME}[-1].public_key=$PublicKey
+uci set network.@${CONFIG_NAME}[-1].endpoint_host=$EndpointIP
+uci set network.@${CONFIG_NAME}[-1].endpoint_port=$EndpointPort
+uci set network.@${CONFIG_NAME}[-1].persistent_keepalive='25'
+uci set network.@${CONFIG_NAME}[-1].allowed_ips='0.0.0.0/0'
+uci set network.@${CONFIG_NAME}[-1].route_allowed_ips='0'
+uci commit network
+
+# 6. Перезагрузка сети
+/etc/init.d/network restart
 
 echo "Successfully updated AmneziaWG key."
 
