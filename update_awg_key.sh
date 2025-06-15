@@ -132,18 +132,22 @@ check_request() {
 warp_config="Error"
 result=$(requestConfWARP1)
 warpGen=$(check_request "$result" 1)
+echo "Attempt 1 result: $warpGen"
 if [ "$warpGen" = "Error" ]
 then
 	result=$(requestConfWARP2)
 	warpGen=$(check_request "$result" 2)
+	echo "Attempt 2 result: $warpGen"
 	if [ "$warpGen" = "Error" ]
 	then
 		result=$(requestConfWARP3)
 		warpGen=$(check_request "$result" 3)
+		echo "Attempt 3 result: $warpGen"
 		if [ "$warpGen" = "Error" ]
 		then
 			result=$(requestConfWARP4)
 			warpGen=$(check_request "$result" 4)
+			echo "Attempt 4 result: $warpGen"
 			if [ "$warpGen" = "Error" ]
 			then
 				echo "Error: Failed to generate WARP config."
@@ -167,8 +171,12 @@ then
 	exit 1
 fi
 
+echo "WARP config: $warp_config"
+
 # Извлечение PrivateKey из WARP-конфига
 PrivateKey=$(echo "$warp_config" | grep "PrivateKey" | cut -d'=' -f2 | tr -d ' ')
+
+echo "PrivateKey: $PrivateKey"
 
 if [ -z "$PrivateKey" ]; then
   echo "Error: PrivateKey not found in WARP config."
@@ -179,9 +187,17 @@ fi
 INTERFACE_NAME="awg10"
 uci set network.${INTERFACE_NAME}.private_key="$PrivateKey"
 uci commit network
+if [ "$?" -ne "0" ]; then
+  echo "Error: Failed to commit network configuration."
+  exit 1
+fi
 
 # Перезапуск сетевых служб
 /etc/init.d/network restart
+if [ "$?" -ne "0" ]; then
+  echo "Error: Failed to restart network."
+  exit 1
+fi
 
 echo "Successfully updated AmneziaWG key."
 
