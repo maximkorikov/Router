@@ -45,6 +45,7 @@ if ! uci show network | grep -q ${CONFIG_NAME}; then
 	uci add network ${CONFIG_NAME}
 fi
 uci set network.${INTERFACE_NAME}.private_key=$PrivateKey
+uci set network.${INTERFACE_NAME}.public_key=""
 uci del network.${INTERFACE_NAME}.addresses
 uci add_list network.${INTERFACE_NAME}.addresses=$Address
 uci set network.${INTERFACE_NAME}.mtu=$MTU
