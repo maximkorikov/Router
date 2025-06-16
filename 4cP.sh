@@ -39,6 +39,7 @@ CONFIG_NAME="amneziawg_awg10"
 PROTO="amneziawg"
 ZONE_NAME="awg"
 
+uci del network.${INTERFACE_NAME} 2>/dev/null
 uci set network.${INTERFACE_NAME}=interface
 uci set network.${INTERFACE_NAME}.proto=$PROTO
 if ! uci show network | grep -q ${CONFIG_NAME}; then
