@@ -26,42 +26,22 @@ echo "Downloaded warp_config:"
 echo "$warp_config"
 
 # Parse the downloaded configuration
-interface_section=""
-peer_section=""
-while IFS=' = ' read -r key value; do
-  key=$(echo "$key" | tr -d '[:space:]')
-  value=$(echo "$value" | tr -d '[:space:]')
-
-  if [ "$key" = "[Interface]" ]; then
-    interface_section="true"
-    peer_section=""
-  elif [ "$key" = "[Peer]" ]; then
-    peer_section="true"
-    interface_section=""
-  elif [ -n "$interface_section" ]; then
-    eval "INTERFACE_$key=\"$value\""
-  elif [ -n "$peer_section" ]; then
-    eval "PEER_$key=\"$value\""
-  fi
-done < <(echo "$warp_config")
-
-# Extract the required parameters
-PrivateKey="${INTERFACE_PrivateKey}"
-S1="${INTERFACE_S1}"
-S2="${INTERFACE_S2}"
-Jc="${INTERFACE_Jc}"
-Jmin="${INTERFACE_Jmin}"
-Jmax="${INTERFACE_Jmax}"
-H1="${INTERFACE_H1}"
-H2="${INTERFACE_H2}"
-H3="${INTERFACE_H3}"
-H4="${INTERFACE_H4}"
-MTU="${INTERFACE_MTU}"
-Address="${INTERFACE_Address}"
-DNS="${INTERFACE_DNS}"
-PublicKey="${PEER_PublicKey}"
-AllowedIPs="${PEER_AllowedIPs}"
-Endpoint="${PEER_Endpoint}"
+PrivateKey=$(grep "PrivateKey" <<< "$warp_config" | sed 's/PrivateKey = //g')
+S1=$(grep "S1" <<< "$warp_config" | sed 's/S1 = //g')
+S2=$(grep "S2" <<< "$warp_config" | sed 's/S2 = //g')
+Jc=$(grep "Jc" <<< "$warp_config" | sed 's/Jc = //g')
+Jmin=$(grep "Jmin" <<< "$warp_config" | sed 's/Jmin = //g')
+Jmax=$(grep "Jmax" <<< "$warp_config" | sed 's/Jmax = //g')
+H1=$(grep "H1" <<< "$warp_config" | sed 's/H1 = //g')
+H2=$(grep "H2" <<< "$warp_config" | sed 's/H2 = //g')
+H3=$(grep "H3" <<< "$warp_config" | sed 's/H3 = //g')
+H4=$(grep "H4" <<< "$warp_config" | sed 's/H4 = //g')
+MTU=$(grep "MTU" <<< "$warp_config" | sed 's/MTU = //g')
+Address=$(grep "Address" <<< "$warp_config" | sed 's/Address = //g')
+DNS=$(grep "DNS" <<< "$warp_config" | sed 's/DNS = //g')
+PublicKey=$(grep "PublicKey" <<< "$warp_config" | sed 's/PublicKey = //g')
+AllowedIPs=$(grep "AllowedIPs" <<< "$warp_config" | sed 's/AllowedIPs = //g')
+Endpoint=$(grep "Endpoint" <<< "$warp_config" | sed 's/Endpoint = //g')
 
 EndpointIP=$(echo "$Endpoint" | cut -d':' -f1)
 EndpointPort=$(echo "$Endpoint" | cut -d':' -f2)
