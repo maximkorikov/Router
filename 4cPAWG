@@ -1,4 +1,5 @@
 #!/bin/sh
+set -x
 
 # 1. Установка Podkop v0.2.5
 printf "\033[32;1mInstalling Podkop v0.2.5...\033[0m\n"
@@ -108,7 +109,7 @@ uci commit network
 modprobe amneziawg
 
 # Перезапуск службы netifd для применения изменений
-service netifd restart
+/etc/init.d/network restart
 
 # Проверка статуса интерфейса awg10
 printf "\033[32;1mChecking status of awg10 interface...\033[0m\n"
