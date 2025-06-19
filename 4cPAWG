@@ -1,73 +1,61 @@
 #!/bin/sh
-set -x
 
 # 1. Установка Podkop v0.2.5
 printf "\033[32;1mInstalling Podkop v0.2.5...\033[0m\n"
 (echo "3"; echo "n"; echo "y") | sh <(wget -O - https://raw.githubusercontent.com/itdoginfo/podkop/a6a171ef47d0ea91d046a9d613570b2a7c952b0d/install.sh | sed 's|https://api.github.com/repos/itdoginfo/podkop/releases/latest|https://api.github.com/repos/itdoginfo/podkop/releases/tags/v0.2.5|g')
 
-# 2. Функции для запроса конфигурации WARP (скопированы из AWG.txt)
+# 2. Получение готового конфигурационного файла с GitHub
+printf "\033[32;1mDownloading static WARP config from GitHub...\033[0m\n"
+warp_config=$(curl -fsSL https://raw.githubusercontent.com/maximkorikov/Router/refs/heads/main/1.conf || echo "Error")
 
-
-
-
-# 3. Генерация ключа и настройка интерфейса AmneziaWG (адаптировано из AWG.txt)
-# 3. Генерация ключа и настройка интерфейса AmneziaWG (адаптировано из AWG.txt)
-# Автоматическая генерация WARP-конфига
-warp_config="Error"
-printf "\033[32;1mDownloading WARP config from GitHub...\033[0m\n"
-warp_config=$(curl -s https://raw.githubusercontent.com/maximkorikov/Router/main/1.conf)
-
-if [ -z "$warp_config" ]; then
-	printf "\033[32;1mFailed to download WARP config...\033[0m\n"
+if [ "$warp_config" = "Error" ] || [ -z "$warp_config" ]; then
+	printf "\033[31;1mFailed to download WARP config. Try again later.\033[0m\n"
 	exit 1
 fi
 
-echo "Downloaded warp_config:"
-echo "$warp_config"
+# 3. Парсинг .conf (секции [Interface], [Peer])
+current_section=""
+while IFS= read -r line; do
+	line=$(echo "$line" | tr -d '\r')  # удалить \r из Windows-формата
+	[ -z "$line" ] && continue
+	case "$line" in
+		\[*\]) current_section=$(echo "$line" | tr -d '[]'); continue ;;
+	esac
 
-# Parse the downloaded configuration
-PrivateKey=$(grep "PrivateKey" <<< "$warp_config" | sed -e 's/.*= *//')
-S1=$(grep "S1" <<< "$warp_config" | sed -e 's/.*= *//')
-S2=$(grep "S2" <<< "$warp_config" | sed -e 's/.*= *//')
-Jc=$(grep "Jc" <<< "$warp_config" | sed -e 's/.*= *//')
-Jmin=$(grep "Jmin" <<< "$warp_config" | sed -e 's/Jmin = *//')
-Jmax=$(grep "Jmax" <<< "$warp_config" | sed -e 's/Jmax = *//')
-H1=$(grep "H1" <<< "$warp_config" | sed -e 's/H1 = *//')
-H2=$(grep "H2" <<< "$warp_config" | sed -e 's/H2 = *//')
-H3=$(grep "H3" <<< "$warp_config" | sed -e 's/H3 = *//')
-H4=$(grep "H4" <<< "$warp_config" | sed -e 's/H4 = *//')
-MTU=$(grep "MTU" <<< "$warp_config" | sed -e 's/.*= *//')
-Address=$(grep "Address" <<< "$warp_config" | sed -e 's/.*= //')
-DNS=$(grep "DNS" <<< "$warp_config" | sed -e 's/.*= //')
-PublicKey=$(grep "PublicKey" <<< "$warp_config" | sed -e 's/PublicKey = //')
-AllowedIPs=$(grep "AllowedIPs" <<< "$warp_config" | sed -e 's/.*= //')
-Endpoint=$(grep "Endpoint" <<< "$warp_config" | sed -e 's/.*= //')
+	key=$(echo "$line" | cut -d '=' -f1 | xargs)
+	value=$(echo "$line" | cut -d '=' -f2- | xargs)
 
+	case "$key" in
+		PrivateKey) PrivateKey="$value" ;;
+		PublicKey) PublicKey="$value" ;;
+		Address) Address="$value" ;;
+		AllowedIPs) AllowedIPs="$value" ;;
+		Endpoint) Endpoint="$value" ;;
+		DNS) DNS="$value" ;;
+		MTU) MTU="$value" ;;
+		S1) S1="$value" ;;
+		S2) S2="$value" ;;
+		Jc) Jc="$value" ;;
+		Jmin) Jmin="$value" ;;
+		Jmax) Jmax="$value" ;;
+		H1) H1="$value" ;;
+		H2) H2="$value" ;;
+		H3) H3="$value" ;;
+		H4) H4="$value" ;;
+	esac
+done <<EOF
+$warp_config
+EOF
+
+# Обработка значений
+Address=$(echo "$Address" | cut -d',' -f1)
+DNS=$(echo "$DNS" | cut -d',' -f1)
+AllowedIPs=$(echo "$AllowedIPs" | cut -d',' -f1)
 EndpointIP=$(echo "$Endpoint" | cut -d':' -f1)
 EndpointPort=$(echo "$Endpoint" | cut -d':' -f2)
 
-echo "PrivateKey: ${PrivateKey}"
-echo "S1: ${S1}"
-echo "S2: ${S2}"
-echo "Jc: ${Jc}"
-echo "Jmin: ${Jmin}"
-echo "Jmax: ${Jmax}"
-echo "H1: ${H1}"
-echo "H2: ${H2}"
-echo "H3: ${H3}"
-echo "H4: ${H4}"
-echo "MTU: ${MTU}"
-echo "Address: ${Address}"
-echo "DNS: ${DNS}"
-echo "PublicKey: ${PublicKey}"
-echo "AllowedIPs: ${AllowedIPs}"
-echo "Endpoint: ${Endpoint}"
-echo "EndpointIP: ${EndpointIP}"
-echo "EndpointPort: ${EndpointPort}"
-
 printf "\033[32;1mCreate and configure tunnel AmneziaWG WARP...\033[0m\n"
 
-#задаём имя интерфейса
 INTERFACE_NAME="awg10"
 CONFIG_NAME="amneziawg_awg10"
 PROTO="amneziawg"
@@ -75,44 +63,35 @@ ZONE_NAME="awg"
 
 uci set network.${INTERFACE_NAME}=interface
 uci set network.${INTERFACE_NAME}.proto=$PROTO
-if ! uci show network | grep -q ${INTERFACE_NAME}; then
-	uci add network ${INTERFACE_NAME}
-fi
 if ! uci show network | grep -q ${CONFIG_NAME}; then
 	uci add network ${CONFIG_NAME}
 fi
-uci set network.${INTERFACE_NAME}.private_key="${PrivateKey}"
-if uci get network.${INTERFACE_NAME}.addresses 2>/dev/null; then
-  uci del network.${INTERFACE_NAME}.addresses
-fi
-uci add_list network.${INTERFACE_NAME}.addresses="${Address}"
-uci set network.${INTERFACE_NAME}.mtu="${MTU}"
-uci set network.${INTERFACE_NAME}.awg_jc="${Jc}"
-uci set network.${INTERFACE_NAME}.awg_jmin="${Jmin}"
-uci set network.${INTERFACE_NAME}.awg_jmax="${Jmax}"
-uci set network.${INTERFACE_NAME}.awg_s1="${S1}"
-uci set network.${INTERFACE_NAME}.awg_s2="${S2}"
-uci set network.${INTERFACE_NAME}.awg_h1="${H1}"
-uci set network.${INTERFACE_NAME}.awg_h2="${H2}"
-uci set network.${INTERFACE_NAME}.awg_h3="${H3}"
-uci set network.${INTERFACE_NAME}.awg_h4="${H4}"
+uci set network.${INTERFACE_NAME}.private_key=$PrivateKey
+uci del network.${INTERFACE_NAME}.addresses
+uci add_list network.${INTERFACE_NAME}.addresses=$Address
+uci set network.${INTERFACE_NAME}.mtu=$MTU
+uci set network.${INTERFACE_NAME}.awg_jc=$Jc
+uci set network.${INTERFACE_NAME}.awg_jmin=$Jmin
+uci set network.${INTERFACE_NAME}.awg_jmax=$Jmax
+uci set network.${INTERFACE_NAME}.awg_s1=$S1
+uci set network.${INTERFACE_NAME}.awg_s2=$S2
+uci set network.${INTERFACE_NAME}.awg_h1=$H1
+uci set network.${INTERFACE_NAME}.awg_h2=$H2
+uci set network.${INTERFACE_NAME}.awg_h3=$H3
+uci set network.${INTERFACE_NAME}.awg_h4=$H4
 uci set network.${INTERFACE_NAME}.nohostroute='1'
 uci set network.@${CONFIG_NAME}[-1].description="${INTERFACE_NAME}_peer"
-uci set network.@${CONFIG_NAME}[-1].public_key="${PublicKey}"
-uci set network.@${CONFIG_NAME}[-1].endpoint_host="${EndpointIP}"
-uci set network.@${CONFIG_NAME}[-1].endpoint_port="${EndpointPort}"
+uci set network.@${CONFIG_NAME}[-1].public_key=$PublicKey
+uci set network.@${CONFIG_NAME}[-1].endpoint_host=$EndpointIP
+uci set network.@${CONFIG_NAME}[-1].endpoint_port=$EndpointPort
 uci set network.@${CONFIG_NAME}[-1].persistent_keepalive='25'
 uci set network.@${CONFIG_NAME}[-1].allowed_ips='0.0.0.0/0'
 uci set network.@${CONFIG_NAME}[-1].route_allowed_ips='0'
 uci commit network
 
-# Загрузка модуля ядра AmneziaWG (если не загружен)
 modprobe amneziawg
+service netifd restart
 
-# Перезапуск службы netifd для применения изменений
-/etc/init.d/network restart
-
-# Проверка статуса интерфейса awg10
 printf "\033[32;1mChecking status of awg10 interface...\033[0m\n"
 ip link show awg10 || echo "Interface awg10 not found or not active."
 
@@ -141,22 +120,13 @@ if ! uci show firewall | grep -q "@forwarding.*name='${ZONE_NAME}'"; then
 	uci commit firewall
 fi
 
-# Получаем список всех зон
 ZONES=$(uci show firewall | grep "zone$" | cut -d'=' -f1)
-#echo $ZONES
-# Циклически проходим по всем зонам
 for zone in $ZONES; do
-  # Получаем имя зоны
   CURR_ZONE_NAME=$(uci get $zone.name)
-  #echo $CURR_ZONE_NAME
-  # Проверяем, является ли это зона с именем "$ZONE_NAME"
   if [ "$CURR_ZONE_NAME" = "$ZONE_NAME" ]; then
-    # Проверяем, существует ли интерфейс в зоне
     if ! uci get $zone.network | grep -q "$INTERFACE_NAME"; then
-      # Добавляем интерфейс в зону
       uci add_list $zone.network="$INTERFACE_NAME"
       uci commit firewall
-      #echo "Интерфейс '$INTERFACE_NAME' добавлен в зону '$ZONE_NAME'"
     fi
   fi
 done
@@ -166,15 +136,15 @@ str=$(grep -i "$nameRule" /etc/config/firewall)
 if [ -z "$str" ] 
 then
   echo "Add block QUIC..."
-
-  uci add firewall rule # =cfg2492bd
+  uci add firewall rule
   uci set firewall.@rule[-1].name='Block_UDP_80'
   uci add_list firewall.@rule[-1].proto='udp'
   uci set firewall.@rule[-1].src='lan'
   uci set firewall.@rule[-1].dest='wan'
   uci set firewall.@rule[-1].dest_port='80'
   uci set firewall.@rule[-1].target='REJECT'
-  uci add firewall rule # =cfg2592bd
+
+  uci add firewall rule
   uci set firewall.@rule[-1].name='Block_UDP_443'
   uci add_list firewall.@rule[-1].proto='udp'
   uci set firewall.@rule[-1].src='lan'
@@ -184,12 +154,11 @@ then
   uci commit firewall
 fi
 
-printf  "\033[32;1mRestart service dnsmasq, odhcpd...\033[0m\n"
+printf "\033[32;1mRestart service dnsmasq, odhcpd...\033[0m\n"
 service dnsmasq restart
 service odhcpd restart
 
-
-printf  "\033[32;1mRestart firewall...\033[0m\n"
+printf "\033[32;1mRestart firewall...\033[0m\n"
 service firewall restart
 
 # Установка и настройка Stubby
@@ -207,7 +176,7 @@ echo -e "ntpd -q -p ptbtime1.ptb.de\nsleep 5\n/etc/init.d/stubby restart\nexit 0
 printf "\033[32;1mRestarting network services...\033[0m\n"
 /etc/init.d/network restart
 
-printf  "\033[32;1mRestarting LuCI web server...\033[0m\n"
+printf "\033[32;1mRestarting LuCI web server...\033[0m\n"
 service uhttpd restart
 /etc/init.d/dnsmasq restart
 /etc/init.d/odhcpd restart
@@ -221,4 +190,4 @@ wget -O /root/update_awg_key.sh https://raw.githubusercontent.com/maximkorikov/R
 chmod +x /root/update_awg_key.sh
 ( crontab -l | grep -v "update_awg_key.sh" ; echo "0 4 * * * /root/update_awg_key.sh" ) | crontab -
 
-printf  "\033[32;1mConfigured completed...\033[0m\n"
+printf "\033[32;1mConfigured completed...\033[0m\n"
