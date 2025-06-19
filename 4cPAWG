@@ -66,6 +66,25 @@ Endpoint="${PEER_Endpoint}"
 EndpointIP=$(echo "$Endpoint" | cut -d':' -f1)
 EndpointPort=$(echo "$Endpoint" | cut -d':' -f2)
 
+echo "PrivateKey: ${PrivateKey}"
+echo "S1: ${S1}"
+echo "S2: ${S2}"
+echo "Jc: ${Jc}"
+echo "Jmin: ${Jmin}"
+echo "Jmax: ${Jmax}"
+echo "H1: ${H1}"
+echo "H2: ${H2}"
+echo "H3: ${H3}"
+echo "H4: ${H4}"
+echo "MTU: ${MTU}"
+echo "Address: ${Address}"
+echo "DNS: ${DNS}"
+echo "PublicKey: ${PublicKey}"
+echo "AllowedIPs: ${AllowedIPs}"
+echo "Endpoint: ${Endpoint}"
+echo "EndpointIP: ${EndpointIP}"
+echo "EndpointPort: ${EndpointPort}"
+
 printf "\033[32;1mCreate and configure tunnel AmneziaWG WARP...\033[0m\n"
 
 #задаём имя интерфейса
