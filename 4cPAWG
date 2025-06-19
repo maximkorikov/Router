@@ -22,30 +22,42 @@ if [ -z "$warp_config" ]; then
 fi
 
 # Parse the downloaded configuration
-# Load the entire config into an associative array
+interface_section=""
+peer_section=""
 while IFS=' = ' read -r key value; do
   key=$(echo "$key" | tr -d '[:space:]')
   value=$(echo "$value" | tr -d '[:space:]')
-  eval "$key=\"$value\""
+
+  if [ "$key" = "[Interface]" ]; then
+    interface_section="true"
+    peer_section=""
+  elif [ "$key" = "[Peer]" ]; then
+    peer_section="true"
+    interface_section=""
+  elif [ -n "$interface_section" ]; then
+    eval "INTERFACE_$key=\"$value\""
+  elif [ -n "$peer_section" ]; then
+    eval "PEER_$key=\"$value\""
+  fi
 done < <(echo "$warp_config")
 
 # Extract the required parameters
-PrivateKey="${PrivateKey}"
-S1="${S1}"
-S2="${S2}"
-Jc="${Jc}"
-Jmin="${Jmin}"
-Jmax="${Jmax}"
-H1="${H1}"
-H2="${H2}"
-H3="${H3}"
-H4="${H4}"
-MTU="${MTU}"
-Address="${Address}"
-DNS="${DNS}"
-PublicKey="${PublicKey}"
-AllowedIPs="${AllowedIPs}"
-Endpoint="${Endpoint}"
+PrivateKey="${INTERFACE_PrivateKey}"
+S1="${INTERFACE_S1}"
+S2="${INTERFACE_S2}"
+Jc="${INTERFACE_Jc}"
+Jmin="${INTERFACE_Jmin}"
+Jmax="${INTERFACE_Jmax}"
+H1="${INTERFACE_H1}"
+H2="${INTERFACE_H2}"
+H3="${INTERFACE_H3}"
+H4="${INTERFACE_H4}"
+MTU="${INTERFACE_MTU}"
+Address="${INTERFACE_Address}"
+DNS="${INTERFACE_DNS}"
+PublicKey="${PEER_PublicKey}"
+AllowedIPs="${PEER_AllowedIPs}"
+Endpoint="${PEER_Endpoint}"
 
 EndpointIP=$(echo "$Endpoint" | cut -d':' -f1)
 EndpointPort=$(echo "$Endpoint" | cut -d':' -f2)
