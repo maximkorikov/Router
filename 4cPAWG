@@ -75,6 +75,9 @@ ZONE_NAME="awg"
 
 uci set network.${INTERFACE_NAME}=interface
 uci set network.${INTERFACE_NAME}.proto=$PROTO
+if ! uci show network | grep -q ${INTERFACE_NAME}; then
+	uci add network ${INTERFACE_NAME}
+fi
 if ! uci show network | grep -q ${CONFIG_NAME}; then
 	uci add network ${CONFIG_NAME}
 fi
