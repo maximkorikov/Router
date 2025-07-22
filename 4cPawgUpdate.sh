@@ -101,6 +101,7 @@ EOF
         uci set firewall.@zone[-1].input='REJECT'
         uci set firewall.@zone[-1].masq='1'
         uci set firewall.@zone[-1].mtu_fix='1'
+        uci set firewall.@zone[-1].family='ipv4'
         uci commit firewall
     fi
 
@@ -201,18 +202,24 @@ if [ "$1" = "--check-update" ]; then
         exit 1
     fi
 
+    # Нормализуем новую конфигурацию: удаляем \r и лишние пробелы в начале/конце строк
+    NEW_WARP_CONFIG_NORMALIZED=$(echo "$NEW_WARP_CONFIG" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
     if [ -f "$CURRENT_CONFIG_FILE" ]; then
         OLD_WARP_CONFIG=$(cat "$CURRENT_CONFIG_FILE")
+        # Нормализуем старую конфигурацию
+        OLD_WARP_CONFIG_NORMALIZED=$(echo "$OLD_WARP_CONFIG" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
     else
-        OLD_WARP_CONFIG=""
+        OLD_WARP_CONFIG_NORMALIZED=""
     fi
 
-    if [ "$NEW_WARP_CONFIG" = "$OLD_WARP_CONFIG" ]; then
+    if [ "$NEW_WARP_CONFIG_NORMALIZED" = "$OLD_WARP_CONFIG_NORMALIZED" ]; then
         echo "Конфигурация WARP не изменилась. Ничего не делаем."
     else
         echo "Обнаружены новые данные конфигурации WARP. Применяем изменения..."
-        echo "$NEW_WARP_CONFIG" > "$CURRENT_CONFIG_FILE"
-        apply_warp_config "$NEW_WARP_CONFIG"
+        # Сохраняем новую, нормализованную конфигурацию
+        echo "$NEW_WARP_CONFIG_NORMALIZED" > "$CURRENT_CONFIG_FILE"
+        apply_warp_config "$NEW_WARP_CONFIG_NORMALIZED"
         echo "Конфигурация WARP обновлена."
     fi
     printf "\033[32;1mUpdate check completed...\033[0m\n"
@@ -234,7 +241,7 @@ elif [ -n "$1" ]; then # Fallback to argument if interactive input is empty
     config_url="$1"
     echo "Используется URL из аргумента командной строки (так как ручной ввод был пуст): $config_url"
 else
-    echo "Ошибка: URL не был введен. Пожалуйста, запустите скрипт снова, предоставив URL в качестве первого аргумента (например, sh 4C_PAWG_UPDATE.sh \"ВАШ_URL\") или введите его вручную."
+    echo "Ошибка: URL не был введен. Пожалуйста, запустите скрипт снова, предоставив URL в качестве первого аргумента (например, sh 4cPAWG.py \"ВАШ_URL\") или введите его вручную."
     exit 1
 fi
 
@@ -249,8 +256,8 @@ if [ "$warp_config" = "Error" ] || [ -z "$warp_config" ]; then
 	exit 1
 fi
 
-# Сохраняем текущую конфигурацию для сравнения в будущем
-echo "$warp_config" > "$CURRENT_CONFIG_FILE"
+# Сохраняем текущую конфигурацию для сравнения в будущем (нормализованную)
+echo "$warp_config" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' > "$CURRENT_CONFIG_FILE"
 
 # Применение конфигурации WARP
 apply_warp_config "$warp_config"
