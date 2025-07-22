@@ -286,6 +286,6 @@ apply_warp_config "$warp_config"
 # Настройка cron-задачи для обновления конфигурации WARP каждые 30 минут
 echo "Настройка cron-задачи для обновления конфигурации WARP каждые 30 минут..."
 # Добавляем cron-задачу, вызывающую этот же скрипт с флагом --check-update
-( crontab -l | grep -v "4C_PAWG_UPDATE.sh --check-update" ; echo "*/30 * * * * /bin/sh /root/4C_PAWG_UPDATE.sh --check-update" ) | crontab -
+( crontab -l | grep -v "4cPawgUpdate.sh --check-update" ; echo "*/30 * * * * /bin/sh /root/4cPawgUpdate.sh --check-update" ) | crontab -
 
 echo "Настройка завершена."
