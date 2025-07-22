@@ -5,10 +5,10 @@ printf "\033[32;1mInstalling Podkop v0.2.5...\033[0m\n"
 (echo "3"; echo "n"; echo "y") | sh <(wget -O - https://raw.githubusercontent.com/itdoginfo/podkop/a6a171ef47d0ea91d046a9d613570b2a7c952b0d/install.sh | sed 's|https://api.github.com/repos/itdoginfo/podkop/releases/latest|https://api.github.com/repos/itdoginfo/podkop/releases/tags/v0.2.5|g')
 
 # 2. Получение готового конфигурационного файла с GitHub
-printf "\033[32;1mPlease enter the URL for the WARP config file (e.g., a direct link from Google Drive or another web server):\033[0m\n"
+echo "Пожалуйста, введите URL для файла конфигурации WARP (например, прямая ссылка с Google Диска или другого веб-сервера):"
 read -r config_url
 
-printf "\033[32;1mDownloading WARP config from %s...\033[0m\n" "$config_url"
+echo "Загрузка конфигурации WARP с $config_url..."
 warp_config=$(curl -fsSL "$config_url" || echo "Error")
 
 if [ "$warp_config" = "Error" ] || [ -z "$warp_config" ]; then
