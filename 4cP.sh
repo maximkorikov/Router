@@ -177,10 +177,4 @@ service dnsmasq restart
 service odhcpd restart
 service podkop restart
 
-# Настройка cron-задачи для обновления ключа AmneziaWG
-printf "\033[32;1mSetting up cron job to update AmneziaWG key daily at 04:00...\033[0m\n"
-wget -O /root/update_awg_key.sh https://raw.githubusercontent.com/maximkorikov/Router/refs/heads/main/update_awg_key.sh
-chmod +x /root/update_awg_key.sh
-( crontab -l | grep -v "update_awg_key.sh" ; echo "0 4 * * * /root/update_awg_key.sh" ) | crontab -
-
 printf  "\033[32;1mConfigured completed...\033[0m\n"
