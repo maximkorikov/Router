@@ -50,39 +50,56 @@ EOF
     EndpointIP=$(echo "$Endpoint" | cut -d':' -f1)
     EndpointPort=$(echo "$Endpoint" | cut -d':' -f2)
 
+    echo "Parsed PrivateKey: $PrivateKey"
+    echo "Parsed PublicKey: $PublicKey"
+    echo "Parsed Address: $Address"
+    echo "Parsed Endpoint: $Endpoint"
+
     printf "\033[32;1mCreate and configure tunnel AmneziaWG WARP...\033[0m\n"
 
     INTERFACE_NAME="awg10"
-    CONFIG_NAME="amneziawg_awg10"
-    PROTO="amneziawg"
+    CONFIG_NAME="amneziawg_awg10" # Это тип секции, а не уникальное имя
     ZONE_NAME="awg"
 
+    # Настраиваем интерфейс
     uci set network.${INTERFACE_NAME}=interface
-    uci set network.${INTERFACE_NAME}.proto=$PROTO
-    if ! uci show network | grep -q ${CONFIG_NAME}; then
-        uci add network ${CONFIG_NAME}
-    fi
-    uci set network.${INTERFACE_NAME}.private_key=$PrivateKey
+    uci set network.${INTERFACE_NAME}.proto="amneziawg"
+    uci set network.${INTERFACE_NAME}.private_key="$PrivateKey"
     uci del network.${INTERFACE_NAME}.addresses
-    uci add_list network.${INTERFACE_NAME}.addresses=$Address
-    uci set network.${INTERFACE_NAME}.mtu=$MTU
-    uci set network.${INTERFACE_NAME}.awg_jc=$Jc
-    uci set network.${INTERFACE_NAME}.awg_jmin=$Jmin
-    uci set network.${INTERFACE_NAME}.awg_jmax=$Jmax
-    uci set network.${INTERFACE_NAME}.awg_s1=$S1
-    uci set network.${INTERFACE_NAME}.awg_s2=$S2
-    uci set network.${INTERFACE_NAME}.awg_h1=$H1
-    uci set network.${INTERFACE_NAME}.awg_h2=$H2
-    uci set network.${INTERFACE_NAME}.awg_h3=$H3
-    uci set network.${INTERFACE_NAME}.awg_h4=$H4
+    uci add_list network.${INTERFACE_NAME}.addresses="$Address"
+    uci set network.${INTERFACE_NAME}.mtu="$MTU"
+    uci set network.${INTERFACE_NAME}.awg_jc="$Jc"
+    uci set network.${INTERFACE_NAME}.awg_jmin="$Jmin"
+    uci set network.${INTERFACE_NAME}.awg_jmax="$Jmax"
+    uci set network.${INTERFACE_NAME}.awg_s1="$S1"
+    uci set network.${INTERFACE_NAME}.awg_s2="$S2"
+    uci set network.${INTERFACE_NAME}.awg_h1="$H1"
+    uci set network.${INTERFACE_NAME}.awg_h2="$H2"
+    uci set network.${INTERFACE_NAME}.awg_h3="$H3"
+    uci set network.${INTERFACE_NAME}.awg_h4="$H4"
     uci set network.${INTERFACE_NAME}.nohostroute='1'
-    uci set network.@${CONFIG_NAME}[-1].description="${INTERFACE_NAME}_peer"
-    uci set network.@${CONFIG_NAME}[-1].public_key=$PublicKey
-    uci set network.@${CONFIG_NAME}[-1].endpoint_host=$EndpointIP
-    uci set network.@${CONFIG_NAME}[-1].endpoint_port=$EndpointPort
-    uci set network.@${CONFIG_NAME}[-1].persistent_keepalive='25'
-    uci set network.@${CONFIG_NAME}[-1].allowed_ips='0.0.0.0/0'
-    uci set network.@${CONFIG_NAME}[-1].route_allowed_ips='0'
+
+    # Находим или создаем peer
+    PEER_SECTION_NAME=""
+    # Ищем peer по описанию, чтобы обновить существующий
+    PEER_CONFIG_PATH=$(uci show network | grep -E "^network\.@${CONFIG_NAME}\[[0-9]+\]\.description='${INTERFACE_NAME}_peer'$" | head -n 1)
+    if [ -n "$PEER_CONFIG_PATH" ]; then
+        PEER_SECTION_NAME=$(echo "$PEER_CONFIG_PATH" | cut -d'.' -f2 | cut -d'=' -f1)
+        echo "Найден существующий peer: $PEER_SECTION_NAME"
+    else
+        # Если peer не найден, добавляем новый
+        PEER_SECTION_NAME=$(uci add network ${CONFIG_NAME})
+        uci set network.${PEER_SECTION_NAME}.description="${INTERFACE_NAME}_peer"
+        echo "Создан новый peer: $PEER_SECTION_NAME"
+    fi
+
+    # Обновляем параметры peer
+    uci set network.${PEER_SECTION_NAME}.public_key="$PublicKey"
+    uci set network.${PEER_SECTION_NAME}.endpoint_host="$EndpointIP"
+    uci set network.${PEER_SECTION_NAME}.endpoint_port="$EndpointPort"
+    uci set network.${PEER_SECTION_NAME}.persistent_keepalive='25'
+    uci set network.${PEER_SECTION_NAME}.allowed_ips='0.0.0.0/0'
+    uci set network.${PEER_SECTION_NAME}.route_allowed_ips='0'
     uci commit network
 
     modprobe amneziawg
