@@ -101,7 +101,6 @@ EOF
         uci set firewall.@zone[-1].input='REJECT'
         uci set firewall.@zone[-1].masq='1'
         uci set firewall.@zone[-1].mtu_fix='1'
-        uci set firewall.@zone[-1].family='ipv4'
         uci commit firewall
     fi
 
@@ -235,7 +234,7 @@ elif [ -n "$1" ]; then # Fallback to argument if interactive input is empty
     config_url="$1"
     echo "Используется URL из аргумента командной строки (так как ручной ввод был пуст): $config_url"
 else
-    echo "Ошибка: URL не был введен. Пожалуйста, запустите скрипт снова, предоставив URL в качестве первого аргумента (например, sh 4cPAWG.py \"ВАШ_URL\") или введите его вручную."
+    echo "Ошибка: URL не был введен. Пожалуйста, запустите скрипт снова, предоставив URL в качестве первого аргумента (например, sh 4C_PAWG_UPDATE.sh \"ВАШ_URL\") или введите его вручную."
     exit 1
 fi
 
@@ -259,6 +258,6 @@ apply_warp_config "$warp_config"
 # Настройка cron-задачи для обновления конфигурации WARP каждые 30 минут
 echo "Настройка cron-задачи для обновления конфигурации WARP каждые 30 минут..."
 # Добавляем cron-задачу, вызывающую этот же скрипт с флагом --check-update
-( crontab -l | grep -v "4C_PAWG_UPDATE.sh --check-update" ; echo "*/30 * * * * /bin/sh C:/Users/korik/Desktop/4C_PAWG_UPDATE.sh --check-update" ) | crontab -
+( crontab -l | grep -v "4C_PAWG_UPDATE.sh --check-update" ; echo "*/30 * * * * /bin/sh /root/4C_PAWG_UPDATE.sh --check-update" ) | crontab -
 
 echo "Настройка завершена."
