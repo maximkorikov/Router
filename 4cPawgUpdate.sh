@@ -202,26 +202,30 @@ if [ "$1" = "--check-update" ]; then
         exit 1
     fi
 
-    # Нормализуем новую конфигурацию: удаляем \r и лишние пробелы в начале/конце строк
-    NEW_WARP_CONFIG_NORMALIZED=$(echo "$NEW_WARP_CONFIG" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    # Сохраняем новую конфигурацию во временный файл и нормализуем ее
+    echo "$NEW_WARP_CONFIG" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' > /tmp/new_warp_config_normalized.tmp
 
     if [ -f "$CURRENT_CONFIG_FILE" ]; then
-        OLD_WARP_CONFIG=$(cat "$CURRENT_CONFIG_FILE")
-        # Нормализуем старую конфигурацию
-        OLD_WARP_CONFIG_NORMALIZED=$(echo "$OLD_WARP_CONFIG" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        # Нормализуем старую конфигурацию и сохраняем во временный файл
+        cat "$CURRENT_CONFIG_FILE" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' > /tmp/old_warp_config_normalized.tmp
     else
-        OLD_WARP_CONFIG_NORMALIZED=""
+        # Если старого файла нет, создаем пустой временный файл для сравнения
+        echo "" > /tmp/old_warp_config_normalized.tmp
     fi
 
-    if [ "$NEW_WARP_CONFIG_NORMALIZED" = "$OLD_WARP_CONFIG_NORMALIZED" ]; then
+    # Сравниваем нормализованные файлы с помощью diff
+    if diff -q /tmp/new_warp_config_normalized.tmp /tmp/old_warp_config_normalized.tmp >/dev/null 2>&1; then
         echo "Конфигурация WARP не изменилась. Ничего не делаем."
     else
         echo "Обнаружены новые данные конфигурации WARP. Применяем изменения..."
-        # Сохраняем новую, нормализованную конфигурацию
-        echo "$NEW_WARP_CONFIG_NORMALIZED" > "$CURRENT_CONFIG_FILE"
-        apply_warp_config "$NEW_WARP_CONFIG_NORMALIZED"
+        # Перемещаем новую, нормализованную конфигурацию в постоянный файл
+        mv /tmp/new_warp_config_normalized.tmp "$CURRENT_CONFIG_FILE"
+        apply_warp_config "$(cat "$CURRENT_CONFIG_FILE")" # Передаем содержимое из файла
         echo "Конфигурация WARP обновлена."
     fi
+
+    # Удаляем временные файлы
+    rm -f /tmp/new_warp_config_normalized.tmp /tmp/old_warp_config_normalized.tmp
     printf "\033[32;1mUpdate check completed...\033[0m\n"
     exit 0
 fi
