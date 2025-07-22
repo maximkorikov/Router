@@ -86,13 +86,13 @@ EOF
     uci commit network
 
     modprobe amneziawg
-    service netifd restart
+    /etc/init.d/netifd restart
 
-    printf "\033[32;1mChecking status of awg10 interface...\033[0m\n"
+    echo "Checking status of awg10 interface..."
     ip link show awg10 || echo "Interface awg10 not found or not active."
 
     if ! uci show firewall | grep -q "@zone.*name='${ZONE_NAME}'"; then
-        printf "\033[32;1mZone Create\033[0m\n"
+        echo "Zone Create"
         uci add firewall zone
         uci set firewall.@zone[-1].name=$ZONE_NAME
         uci set firewall.@zone[-1].network=$INTERFACE_NAME
@@ -106,7 +106,7 @@ EOF
     fi
 
     if ! uci show firewall | grep -q "@forwarding.*name='${ZONE_NAME}'"; then
-        printf "\033[32;1mConfigured forwarding\033[0m\n"
+        echo "Configured forwarding"
         uci add firewall forwarding
         uci set firewall.@forwarding[-1]=forwarding
         uci set firewall.@forwarding[-1].name="${ZONE_NAME}"
@@ -150,35 +150,35 @@ EOF
       uci commit firewall
     fi
 
-    printf "\033[32;1mRestart service dnsmasq, odhcpd...\033[0m\n"
-    service dnsmasq restart
-    service odhcpd restart
+    echo "Restart service dnsmasq, odhcpd..."
+    /etc/init.d/dnsmasq restart
+    /etc/init.d/odhcpd restart
 
-    printf "\033[32;1mRestart firewall...\033[0m\n"
-    service firewall restart
+    echo "Restart firewall..."
+    /etc/init.d/firewall restart
 
     # Установка и настройка Stubby
-    printf "\033[32;1mInstalling and configuring Stubby...\033[0m\n"
+    echo "Installing and configuring Stubby..."
     opkg update && opkg install stubby
     uci set dhcp.@dnsmasq[0].noresolv="1"
     uci set dhcp.@dnsmasq[0].filter_aaaa="1"
     uci -q delete dhcp.@dnsmasq[0].server
     uci add_list dhcp.@dnsmasq[0].server="127.0.0.1#5453"
     uci commit dhcp
-    service dnsmasq restart
+    /etc/init.d/dnsmasq restart
     echo -e "ntpd -q -p ptbtime1.ptb.de\nsleep 5\n/etc/init.d/stubby restart\nexit 0" > /etc/rc.local && chmod +x /etc/rc.local && /etc/init.d/stubby restart
 
     # Перезапуск всей сети
-    printf "\033[32;1mRestarting network services...\033[0m\n"
+    echo "Restarting network services..."
     /etc/init.d/network restart
 
-    printf "\033[32;1mRestarting LuCI web server...\033[0m\n"
-    service uhttpd restart
+    echo "Restarting LuCI web server..."
+    /etc/init.d/uhttpd restart
     /etc/init.d/dnsmasq restart
     /etc/init.d/odhcpd restart
-    service dnsmasq restart
-    service odhcpd restart
-    service podkop restart
+    /etc/init.d/dnsmasq restart
+    /etc/init.d/odhcpd restart
+    /etc/init.d/podkop restart
 }
 
 # Основная логика скрипта
@@ -213,8 +213,8 @@ if [ "$1" = "--check-update" ]; then
         echo "" > /tmp/old_warp_config_normalized.tmp
     fi
 
-    # Сравниваем нормализованные файлы с помощью diff
-    if diff -q /tmp/new_warp_config_normalized.tmp /tmp/old_warp_config_normalized.tmp >/dev/null 2>&1; then
+    # Сравниваем нормализованные файлы с помощью cmp
+    if cmp -s /tmp/new_warp_config_normalized.tmp /tmp/old_warp_config_normalized.tmp; then
         echo "Конфигурация WARP не изменилась. Ничего не делаем."
     else
         echo "Обнаружены новые данные конфигурации WARP. Применяем изменения..."
