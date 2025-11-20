@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# === СТРОГАЯ ФИКСАЦИЯ ВЕРСИИ PODKOP v0.2.5 ===
-REPO="https://api.github.com/repos/itdoginfo/podkop/releases/tags/v0.2.5"
-
 IS_SHOULD_RESTART_NETWORK=
 DOWNLOAD_DIR="/tmp/podkop"
 mkdir -p "$DOWNLOAD_DIR"
@@ -10,12 +7,24 @@ mkdir -p "$DOWNLOAD_DIR"
 main() {
     check_system
 
-    # Скачивание файлов Podkop v0.2.5 через API
-    wget -qO- "$REPO" | grep -o 'https://[^"]*\.ipk' | while read -r url; do
-        filename=$(basename "$url")
-        echo "Download $filename..."
-        wget -q -O "$DOWNLOAD_DIR/$filename" "$url"
-    done
+    echo "Downloading Podkop v0.2.5 packages strictly..."
+    
+    # Прямые ссылки на релиз v0.2.5
+    URL_MAIN="https://github.com/itdoginfo/podkop/releases/download/v0.2.5/podkop_0.2.5-1_all.ipk"
+    URL_LUCI="https://github.com/itdoginfo/podkop/releases/download/v0.2.5/luci-app-podkop_0.2.5_all.ipk"
+    URL_I18N="https://github.com/itdoginfo/podkop/releases/download/v0.2.5/luci-i18n-podkop-ru_0.2.5.ipk"
+
+    # Скачиваем файлы принудительно
+    # Используем --no-check-certificate, так как на роутерах часто проблемы с SSL
+    wget --no-check-certificate -q -O "$DOWNLOAD_DIR/podkop.ipk" "$URL_MAIN"
+    wget --no-check-certificate -q -O "$DOWNLOAD_DIR/luci-app-podkop.ipk" "$URL_LUCI"
+    wget --no-check-certificate -q -O "$DOWNLOAD_DIR/luci-i18n-podkop-ru.ipk" "$URL_I18N"
+
+    # Проверяем, скачались ли файлы (размер больше 0)
+    if [ ! -s "$DOWNLOAD_DIR/podkop.ipk" ] || [ ! -s "$DOWNLOAD_DIR/luci-app-podkop.ipk" ]; then
+        echo "ERROR: Failed to download Podkop packages! Check internet connection."
+        exit 1
+    fi
 
     echo "opkg update"
     opkg update
@@ -69,15 +78,17 @@ main() {
         add_tunnel
     fi
 
-    opkg install $DOWNLOAD_DIR/podkop*.ipk
-    opkg install $DOWNLOAD_DIR/luci-app-podkop*.ipk
+    # Установка скачанных пакетов (используем конкретные имена)
+    echo "Installing Podkop ipk files..."
+    opkg install "$DOWNLOAD_DIR/podkop.ipk"
+    opkg install "$DOWNLOAD_DIR/luci-app-podkop.ipk"
 
     echo "Русский язык интерфейса ставим? y/n (Need a Russian translation?)"
     while true; do
         read -r -p '' RUS
         case $RUS in
         y)
-            opkg install $DOWNLOAD_DIR/luci-i18n-podkop-ru*.ipk
+            opkg install "$DOWNLOAD_DIR/luci-i18n-podkop-ru.ipk"
             break
             ;;
 
@@ -91,7 +102,7 @@ main() {
         esac
     done
 
-    rm -f $DOWNLOAD_DIR/podkop*.ipk $DOWNLOAD_DIR/luci-app-podkop*.ipk $DOWNLOAD_DIR/luci-i18n-podkop-ru*.ipk
+    rm -f "$DOWNLOAD_DIR/podkop.ipk" "$DOWNLOAD_DIR/luci-app-podkop.ipk" "$DOWNLOAD_DIR/luci-i18n-podkop-ru.ipk"
 
     if [ "$IS_SHOULD_RESTART_NETWORK" ]; then
         printf "\033[32;1mRestart network\033[0m\n"
@@ -120,14 +131,12 @@ add_tunnel() {
 
     2)
         opkg install wireguard-tools luci-proto-wireguard luci-app-wireguard
-        # ... старый код для Wireguard пропущен для краткости, так как мы выбрали 3 ...
         ;;
 
     3)
         install_awg_packages
 
         printf "\033[32;1mAutomatically configuring AmneziaWG interface...\033[0m\n"
-        # === АВТОМАТИЗАЦИЯ: Пропускаем вопрос (y/n) и сразу запускаем настройку ===
         wg_awg_setup AmneziaWG
         ;;
 
@@ -156,9 +165,7 @@ handler_network_restart() {
 }
 
 install_awg_packages() {
-    # Получение архитектуры
     PKGARCH=$(opkg print-architecture | awk 'BEGIN {max=0} {if ($3 > max) {max = $3; arch = $2}} END {print arch}')
-
     TARGET=$(ubus call system board | jsonfilter -e '@.release.target' | cut -d '/' -f 1)
     SUBTARGET=$(ubus call system board | jsonfilter -e '@.release.target' | cut -d '/' -f 2)
     
@@ -176,12 +183,12 @@ install_awg_packages() {
     else
         KMOD_AMNEZIAWG_FILENAME="kmod-amneziawg${PKGPOSTFIX}"
         echo "Downloading $KMOD_AMNEZIAWG_FILENAME..."
-        wget -O "$AWG_DIR/$KMOD_AMNEZIAWG_FILENAME" "${BASE_URL}${KMOD_AMNEZIAWG_FILENAME}"
+        wget --no-check-certificate -O "$AWG_DIR/$KMOD_AMNEZIAWG_FILENAME" "${BASE_URL}${KMOD_AMNEZIAWG_FILENAME}"
 
         if [ $? -eq 0 ]; then
             opkg install "$AWG_DIR/$KMOD_AMNEZIAWG_FILENAME"
         else
-            echo "Error downloading kmod-amneziawg. Please check if your architecture exists in v24.10.4 release."
+            echo "Error downloading kmod-amneziawg."
             exit 1
         fi
     fi
@@ -192,7 +199,7 @@ install_awg_packages() {
     else
         AMNEZIAWG_TOOLS_FILENAME="amneziawg-tools${PKGPOSTFIX}"
         echo "Downloading $AMNEZIAWG_TOOLS_FILENAME..."
-        wget -O "$AWG_DIR/$AMNEZIAWG_TOOLS_FILENAME" "${BASE_URL}${AMNEZIAWG_TOOLS_FILENAME}"
+        wget --no-check-certificate -O "$AWG_DIR/$AMNEZIAWG_TOOLS_FILENAME" "${BASE_URL}${AMNEZIAWG_TOOLS_FILENAME}"
 
         if [ $? -eq 0 ]; then
             opkg install "$AWG_DIR/$AMNEZIAWG_TOOLS_FILENAME"
@@ -202,14 +209,13 @@ install_awg_packages() {
         fi
     fi
     
-    # 3. LUCI-PROTO (Вместо LUCI-APP)
+    # 3. LUCI-PROTO
     if opkg list-installed | grep -q luci-proto-amneziawg; then
         echo "luci-proto-amneziawg already installed"
     else
-        # Используем luci-proto, так как в v24.10.4 изменилось имя
         LUCI_PROTO_AMNEZIAWG_FILENAME="luci-proto-amneziawg${PKGPOSTFIX}"
         echo "Downloading $LUCI_PROTO_AMNEZIAWG_FILENAME..."
-        wget -O "$AWG_DIR/$LUCI_PROTO_AMNEZIAWG_FILENAME" "${BASE_URL}${LUCI_PROTO_AMNEZIAWG_FILENAME}"
+        wget --no-check-certificate -O "$AWG_DIR/$LUCI_PROTO_AMNEZIAWG_FILENAME" "${BASE_URL}${LUCI_PROTO_AMNEZIAWG_FILENAME}"
 
         if [ $? -eq 0 ]; then
             opkg install "$AWG_DIR/$LUCI_PROTO_AMNEZIAWG_FILENAME"
@@ -219,9 +225,9 @@ install_awg_packages() {
         fi
     fi
 
-    # 4. Русификация (по желанию, но раз она есть в релизе — ставим)
+    # 4. Русификация
     LUCI_RU_FILENAME="luci-i18n-amneziawg-ru${PKGPOSTFIX}"
-    wget -q -O "$AWG_DIR/$LUCI_RU_FILENAME" "${BASE_URL}${LUCI_RU_FILENAME}"
+    wget --no-check-certificate -q -O "$AWG_DIR/$LUCI_RU_FILENAME" "${BASE_URL}${LUCI_RU_FILENAME}"
     if [ -s "$AWG_DIR/$LUCI_RU_FILENAME" ]; then
          opkg install "$AWG_DIR/$LUCI_RU_FILENAME"
     fi
@@ -245,7 +251,6 @@ wg_awg_setup() {
         PROTO="amneziawg"
         ZONE_NAME="awg"
         
-        # === АВТОМАТИЗАЦИЯ: Сразу выбираем режим 2 (Obfuscation) ===
         echo "Automatically selecting config type: 2) Wireguard + automatic obfuscation"
         CONFIG_TYPE='2'
     fi
@@ -272,9 +277,8 @@ wg_awg_setup() {
     fi
 
     if [ "$PROTOCOL_NAME" = 'AmneziaWG' ]; then
-        # Блок ручного ввода параметров удален, так как жестко выбран тип 2
         if [ "$CONFIG_TYPE" = '2' ]; then
-            # Default values to wg automatic obfuscation
+            # Default values
             AWG_JC=4
             AWG_JMIN=40
             AWG_JMAX=70
@@ -349,22 +353,17 @@ wg_awg_setup() {
 }
 
 check_system() {
-    # Get router model
     MODEL=$(cat /tmp/sysinfo/model)
     echo "Router model: $MODEL"
 
-    # Check available space
     AVAILABLE_SPACE=$(df /tmp | awk 'NR==2 {print $4}')
-    # Change after switch sing-box
-    REQUIRED_SPACE=1024 # 20MB in KB
+    REQUIRED_SPACE=1024
 
     echo "Available space: $((AVAILABLE_SPACE/1024))MB"
     echo "Required space: $((REQUIRED_SPACE/1024))MB"
 
     if [ "$AVAILABLE_SPACE" -lt "$REQUIRED_SPACE" ]; then
         echo "Error: Insufficient space in /tmp"
-        echo "Available: $((AVAILABLE_SPACE/1024))MB"
-        echo "Required: $((REQUIRED_SPACE/1024))MB"
         exit 1
     fi
 }
